@@ -1,6 +1,7 @@
 import pandas as pd
-from datetime import datetime
 import math
+from datetime import datetime
+from fetch_data import fetch_data, source_url  # Import fetch_data and source_url
 
 class DataAnalyzer:
     @staticmethod
@@ -35,56 +36,43 @@ class DataAnalyzer:
         with longer intervals.
 
         Args:
-        metadata (dict): Dictionary containing metadata with 'last_updated' as a key.
+        metadata (dict): Dictionary containing metadata with 'last_update_time' as a key.
 
         Returns:
         float: The update frequency score (0 to 1).
         """
-        if 'last_updated' not in metadata or not metadata['last_updated']:
-            return 0.0  # If no update date is provided, score is 0.
+        if 'last_update_time' not in metadata or not metadata['last_update_time']:
+            return 0.0  # If no update time is provided, score is 0.
 
         try:
-            # Parse the last update date from the metadata
-            last_updated = datetime.strptime(metadata['last_updated'], "%Y-%m-%d")
+            # Parse the last update time from the metadata
+            last_update_time = datetime.fromisoformat(metadata['last_update_time'])
             today = datetime.now()
-            days_since_update = (today - last_updated).days
+            days_since_update = (today - last_update_time).days
 
             # Calculate the score with exponential decay
             # A dataset updated within 7 days receives a score close to 1.
-            # Decay factor (lambda) can be adjusted; here, 7 days is the baseline.
             decay_factor = 0.1  # Controls the rate of decay
             update_score = math.exp(-decay_factor * days_since_update)
 
             return round(update_score, 4)  # Return a rounded score for simplicity.
 
         except ValueError:
-            return 0.0  # Return 0 if the date format is invalid.
+            return 0.0  # Return 0 if the date format is invalid
 
 
-# Testing the Functions
+# Example usage
 if __name__ == "__main__":
-    # Dummy dataset for completeness testing
-    dummy_data = {
-        'Name': ['Alice', 'Bob', None, 'David'],
-        'Age': [25, None, 0, 0],
-        'City': ['New York', 'Los Angeles', 'Chicago', None]
-    }
-    dummy_df = pd.DataFrame(dummy_data)
+    # Use the source_url directly from fetch_data.py
+    dataset, metadata = fetch_data(source_url)
 
-    # Dummy metadata for update frequency testing
-    dummy_metadata = {
-        'title': 'Dummy Dataset',
-        'description': 'A dummy dataset for testing the update frequency.',
-        'last_updated': '2023-12-01'  # Update date in YYYY-MM-DD format
-    }
-
+    # Initialize the DataAnalyzer
     analyzer = DataAnalyzer()
 
-    # Test Completeness Score
-    completeness_score = analyzer.calculate_completeness_score(dummy_df)
-    print(f"Dummy Completeness Score: {completeness_score}")
+    # Calculate Completeness Score
+    completeness_score = analyzer.calculate_completeness_score(dataset)
+    print(f"Completeness Score: {completeness_score}")
 
-    # Test Update Frequency Score
-    update_score = analyzer.calculate_update_score(dummy_metadata)
-    print(f"Dummy Update Frequency Score: {update_score}")
-git 
+    # Calculate Update Frequency Score
+    update_score = analyzer.calculate_update_score(metadata)
+    print(f"Update Frequency Score: {update_score}")
