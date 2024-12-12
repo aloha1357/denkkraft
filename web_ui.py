@@ -9,7 +9,8 @@ from trust_score_calculator import TrustScoreCalculator
 class WebUI:
     def __init__(self):
         # 初始化後端類別
-        self.fetcher = DataFetcher()
+        url = "ted_talks_en.csv"  # Replace with a valid URL or path
+        self.fetcher = DataFetcher(url)
         self.analyzer = DataAnalyzer()
         self.calculator = TrustScoreCalculator()
 
