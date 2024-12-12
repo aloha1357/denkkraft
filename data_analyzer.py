@@ -169,7 +169,12 @@ def multivariate_analysis(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Correlation matrix of numerical columns.
     """
-    return df.corr()
+    numeric_df = df.select_dtypes(include=[np.number])  # Select only numeric columns
+    if numeric_df.empty:
+        print("No numeric columns found for correlation analysis.")
+        return pd.DataFrame()
+    return numeric_df.corr()
+
 
 def context_specific_checks(df: pd.DataFrame, context: str = 'general') -> None:
     """
@@ -197,15 +202,15 @@ def context_specific_checks(df: pd.DataFrame, context: str = 'general') -> None:
 
 # Example usage (replace with your actual dataset)
 if __name__ == "__main__":
-    url = "example_dataset.csv"  # Replace with a valid URL or file path
+    url = "ted_talks_en.csv"  # Replace with a valid URL or file path
     df = pd.read_csv(url)
 
     # Example calls for validation
     schema = {"column1": "float64", "column2": "object"}
     print("Schema Validation:", schema_validation(df, schema))
-    print("Outliers:", detect_outliers(df, method='IQR'))
     print("Integrity Checks:", integrity_checks(df, ["id"]))
     print("Statistical Summary:\n", statistical_summary(df))
     print("Text Data Analysis:", text_data_analysis(df, ["description"]))
     print("Temporal Validation:", temporal_validation(df, ["date_column"]))
     print("Correlation Matrix:\n", multivariate_analysis(df))
+    print("Outliers:", detect_outliers(df, method='IQR'))
