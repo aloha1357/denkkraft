@@ -1,78 +1,211 @@
 import pandas as pd
-import math
-from datetime import datetime
-from data_fetcher import DataFetcher
+import numpy as np
+from scipy.stats import zscore
+from typing import List, Dict, Tuple
 
-class DataAnalyzer:
-    @staticmethod
-    def calculate_completeness_score(df: pd.DataFrame) -> float:
-        """
-        Calculate the completeness score of a DataFrame.
-        
-        Completeness Score = 1 - (Total Number of Missing Values / Total Data Points)
+def schema_validation(df: pd.DataFrame, expected_schema: Dict[str, str]) -> bool:
+    """
+    Validates the dataset against a predefined schema.
 
-        Args:
-        df (pd.DataFrame): The dataset as a pandas DataFrame.
+    Parameters:
+        df (pd.DataFrame): The dataset to validate.
+        expected_schema (Dict[str, str]): A dictionary mapping column names to expected data types.
 
-        Returns:
-        float: The completeness score (0 to 1).
-        """
-        if df.empty:
-            return 0.0  # If the DataFrame is empty, completeness is 0.
+    Returns:
+        bool: True if the schema matches, False otherwise.
+    """
+    for column, dtype in expected_schema.items():
+        if column not in df.columns:
+            print(f"Missing column: {column}")
+            return False
+        if not np.issubdtype(df[column].dtype, np.dtype(dtype)):
+            print(f"Column {column} has incorrect type: expected {dtype}, got {df[column].dtype}")
+            return False
+    return True
 
-        total_values = df.size  # Total number of data points in the DataFrame.
-        missing_values = df.isnull().sum().sum()  # Total number of missing values in the DataFrame.
-        completeness_score = 1 - (missing_values / total_values)
+def detect_outliers(df: pd.DataFrame, method: str = 'IQR') -> Dict[str, List[int]]:
+    """
+    Detects outliers in numerical columns.
 
-        return round(completeness_score, 4)  # Return a rounded score for simplicity.
+    Parameters:
+        df (pd.DataFrame): The dataset to analyze.
+        method (str): Method to detect outliers ('IQR' or 'zscore').
 
-    @staticmethod
-    def calculate_update_score(metadata: dict) -> float:
-        """
-        Calculate the update frequency score based on metadata.
+    Returns:
+        Dict[str, List[int]]: Dictionary mapping column names to indices of rows with outliers.
+    """
+    outliers = {}
+    for column in df.select_dtypes(include=[np.number]).columns:
+        if method == 'IQR':
+            Q1 = df[column].quantile(0.25)
+            Q3 = df[column].quantile(0.75)
+            IQR = Q3 - Q1
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+            outlier_indices = df[(df[column] < lower_bound) | (df[column] > upper_bound)].index.tolist()
+        elif method == 'zscore':
+            z_scores = zscore(df[column].dropna())
+            outlier_indices = np.where(np.abs(z_scores) > 3)[0].tolist()
+        else:
+            raise ValueError("Invalid method. Use 'IQR' or 'zscore'.")
+        if outlier_indices:
+            outliers[column] = outlier_indices
+    return outliers
 
-        The score is based on how recently the dataset has been updated. A dataset
-        updated within 7 days receives full marks, and the score decays exponentially
-        with longer intervals.
+def integrity_checks(df: pd.DataFrame, key_columns: List[str]) -> bool:
+    """
+    Performs integrity checks such as uniqueness of key columns.
 
-        Args:
-        metadata (dict): Dictionary containing metadata with 'last_update_time' as a key.
+    Parameters:
+        df (pd.DataFrame): The dataset to analyze.
+        key_columns (List[str]): Columns that should have unique values.
 
-        Returns:
-        float: The update frequency score (0 to 1).
-        """
-        if 'last_update_time' not in metadata or not metadata['last_update_time']:
-            return 0.0  # If no update time is provided, score is 0.
+    Returns:
+        bool: True if all integrity checks pass, False otherwise.
+    """
+    for column in key_columns:
+        if column not in df.columns:
+            print(f"Key column {column} not found in dataset.")
+            return False
+        if df[column].duplicated().any():
+            print(f"Duplicates found in key column: {column}")
+            return False
+    return True
 
-        try:
-            # Parse the last update time from the metadata
-            last_update_time = datetime.fromisoformat(metadata['last_update_time'])
-            today = datetime.now()
-            days_since_update = (today - last_update_time).days
+def statistical_summary(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Generates descriptive statistics for numerical columns.
 
-            # Calculate the score with exponential decay
-            # A dataset updated within 7 days receives a score close to 1.
-            decay_factor = 0.1  # Controls the rate of decay
-            update_score = math.exp(-decay_factor * days_since_update)
+    Parameters:
+        df (pd.DataFrame): The dataset to summarize.
 
-            return round(update_score, 4)  # Return a rounded score for simplicity.
+    Returns:
+        pd.DataFrame: Summary statistics for numerical columns.
+    """
+    return df.describe()
 
-        except ValueError:
-            return 0.0  # Return 0 if the date format is invalid
+def validate_distribution(df: pd.DataFrame, column: str, expected_distribution: str = 'normal') -> bool:
+    """
+    Validates the distribution of a column.
 
+    Parameters:
+        df (pd.DataFrame): The dataset to analyze.
+        column (str): The column to validate.
+        expected_distribution (str): Expected distribution ('normal', 'uniform').
 
-# Example usage
+    Returns:
+        bool: True if the distribution matches the expectation, False otherwise.
+    """
+    from scipy.stats import shapiro, kstest
+
+    data = df[column].dropna()
+    if expected_distribution == 'normal':
+        stat, p_value = shapiro(data)
+    elif expected_distribution == 'uniform':
+        stat, p_value = kstest(data, 'uniform')
+    else:
+        raise ValueError("Invalid expected distribution. Use 'normal' or 'uniform'.")
+
+    if p_value < 0.05:
+        print(f"Column {column} does not follow the expected {expected_distribution} distribution.")
+        return False
+    return True
+
+def text_data_analysis(df: pd.DataFrame, text_columns: List[str]) -> Dict[str, Dict[str, int]]:
+    """
+    Analyzes text columns for quality.
+
+    Parameters:
+        df (pd.DataFrame): The dataset to analyze.
+        text_columns (List[str]): List of text columns to analyze.
+
+    Returns:
+        Dict[str, Dict[str, int]]: Analysis results per column.
+    """
+    results = {}
+    for column in text_columns:
+        if column in df.columns:
+            results[column] = {
+                "missing": df[column].isna().sum(),
+                "empty": (df[column].str.strip() == '').sum(),
+                "unique": df[column].nunique()
+            }
+        else:
+            print(f"Text column {column} not found in dataset.")
+    return results
+
+def temporal_validation(df: pd.DataFrame, date_columns: List[str]) -> Dict[str, bool]:
+    """
+    Validates date columns for consistency.
+
+    Parameters:
+        df (pd.DataFrame): The dataset to analyze.
+        date_columns (List[str]): List of date columns to validate.
+
+    Returns:
+        Dict[str, bool]: Validation results per column.
+    """
+    results = {}
+    for column in date_columns:
+        if column in df.columns:
+            try:
+                pd.to_datetime(df[column])  # Validate format
+                results[column] = True
+            except Exception as e:
+                print(f"Error in column {column}: {e}")
+                results[column] = False
+        else:
+            print(f"Date column {column} not found in dataset.")
+            results[column] = False
+    return results
+
+def multivariate_analysis(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Analyzes correlations between numerical columns.
+
+    Parameters:
+        df (pd.DataFrame): The dataset to analyze.
+
+    Returns:
+        pd.DataFrame: Correlation matrix of numerical columns.
+    """
+    return df.corr()
+
+def context_specific_checks(df: pd.DataFrame, context: str = 'general') -> None:
+    """
+    Performs context-specific validation checks.
+
+    Parameters:
+        df (pd.DataFrame): The dataset to analyze.
+        context (str): The context of the dataset ('general', 'geo', 'finance').
+
+    Returns:
+        None
+    """
+    if context == 'geo':
+        if 'latitude' in df.columns and 'longitude' in df.columns:
+            invalid_lat = df[(df['latitude'] < -90) | (df['latitude'] > 90)]
+            invalid_lon = df[(df['longitude'] < -180) | (df['longitude'] > 180)]
+            print(f"Invalid latitudes: {len(invalid_lat)}")
+            print(f"Invalid longitudes: {len(invalid_lon)}")
+    elif context == 'finance':
+        if 'price' in df.columns:
+            negative_prices = df[df['price'] < 0]
+            print(f"Negative prices: {len(negative_prices)}")
+    else:
+        print("No specific checks implemented for this context.")
+
+# Example usage (replace with your actual dataset)
 if __name__ == "__main__":
-    data_fetcher = DataFetcher("ted_talks_en.csv")
-    dataset, metadata = data_fetcher.fetch_data()   
-    
-    # Initialize the DataAnalyzer
-    analyzer = DataAnalyzer()
+    url = "example_dataset.csv"  # Replace with a valid URL or file path
+    df = pd.read_csv(url)
 
-    # Calculate Completeness Score
-    completeness_score = analyzer.calculate_completeness_score(dataset)
-    print(f"Completeness Score: {completeness_score}")
-
-    # Calculate Update Frequency Score
-    update_score = analyzer.calculate_update_score(metadata)
-    print(f"Update Frequency Score: {update_score}")
+    # Example calls for validation
+    schema = {"column1": "float64", "column2": "object"}
+    print("Schema Validation:", schema_validation(df, schema))
+    print("Outliers:", detect_outliers(df, method='IQR'))
+    print("Integrity Checks:", integrity_checks(df, ["id"]))
+    print("Statistical Summary:\n", statistical_summary(df))
+    print("Text Data Analysis:", text_data_analysis(df, ["description"]))
+    print("Temporal Validation:", temporal_validation(df, ["date_column"]))
+    print("Correlation Matrix:\n", multivariate_analysis(df))
