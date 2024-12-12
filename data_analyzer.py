@@ -1,7 +1,7 @@
 import pandas as pd
 import math
 from datetime import datetime
-from fetch_data import fetch_data, source_url  # Import fetch_data and source_url
+from data_fetcher import DataFetcher
 
 class DataAnalyzer:
     @staticmethod
@@ -63,9 +63,9 @@ class DataAnalyzer:
 
 # Example usage
 if __name__ == "__main__":
-    # Use the source_url directly from fetch_data.py
-    dataset, metadata = fetch_data(source_url)
-
+    data_fetcher = DataFetcher("ted_talks_en.csv")
+    dataset, metadata = data_fetcher.fetch_data()   
+    
     # Initialize the DataAnalyzer
     analyzer = DataAnalyzer()
 
