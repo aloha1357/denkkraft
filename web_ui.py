@@ -9,7 +9,7 @@ from trust_score_calculator import TrustScoreCalculator
 class WebUI:
     def __init__(self):
         # 初始化後端類別
-        url = "ted_talks_en.csv"  # Replace with a valid URL or path
+        url = "shopping_trends.csv"  # Replace with a valid URL or path
         self.fetcher = DataFetcher(url)
         self.analyzer = DataAnalyzer()
         self.calculator = TrustScoreCalculator()
@@ -20,17 +20,19 @@ class WebUI:
         self.completeness_score = 0.0
         self.update_score = 0.0
         self.trust_score = 0.0
-
+        self.metadata_quality_score = 0.0
     def load_data(self):
         self.df, self.metadata = self.fetcher.fetch_data()
+        print(self.df)
 
     def analyze_data(self):
         if self.df is not None and self.metadata is not None:
             self.completeness_score = self.analyzer.calculate_completeness_score(self.df)
             self.update_score = self.analyzer.calculate_update_score(self.metadata)
+            self.metadata_quality_score = self.analyzer.calculate_metadata_quality_score(self.df,self.metadata)
 
     def compute_trust_score(self):
-        self.trust_score = self.calculator.calculate_trust_score(self.completeness_score, self.update_score)
+        self.trust_score = self.calculator.calculate_trust_score(self.completeness_score, self.update_score,self.metadata_quality_score)
 
     def render_page(self):
         st.title("Data Trustworthiness Scoring System")

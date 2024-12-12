@@ -26,7 +26,7 @@ class DataFetcher:
         try:
             if self.source_url.endswith('.csv'):
                 # If the source is a CSV file
-                self.df = pd.read_csv(self.source_url)
+                self.df = pd.read_csv(self.source_url, encoding='utf-8')
             else:
                 # If the source is an API endpoint, assume JSON response
                 response = requests.get(self.source_url)
@@ -68,11 +68,11 @@ class DataFetcher:
 
 # Example usage (replace with your actual dataset URL)
 if __name__ == "__main__":
-    url = "ted_talks_en.csv"  # Replace with a valid URL or path
+    url = "shopping_trends.csv"  # Replace with a valid URL or path
     data_fetcher = DataFetcher(url)
 
     dataset, metadata = data_fetcher.fetch_data()
 
     print("Metadata:", metadata)
     print("Dataset Head:")
-    print(dataset.head())
+    print(dataset)

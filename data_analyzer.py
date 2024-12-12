@@ -208,6 +208,62 @@ class DataAnalyzer:
                 print(f"Negative prices: {len(negative_prices)}")
         else:
             print("No specific checks implemented for this context.")
+    
+    @staticmethod    
+    def calculate_completeness_score( df: pd.DataFrame) -> float:
+        # Placeholder: Completeness score logic
+        total_cells = df.size
+        non_null_cells = df.count().sum()
+        return non_null_cells / total_cells if total_cells > 0 else 0
+    
+    @staticmethod
+    def calculate_update_score( metadata: dict) -> float:
+        # Placeholder: Update frequency score logic
+        return metadata.get("update_score", 0.5)
+    
+    @staticmethod
+    def calculate_metadata_quality_score(df: pd.DataFrame, column_descriptions=None) -> float:
+        """
+        Calculate a metadata quality score for a given DataFrame.
+        
+        Args:
+            df (pd.DataFrame): The input DataFrame.
+            column_descriptions (dict, optional): A dictionary of column names to their descriptions.
+                                                  Example: {'col1': 'Description of col1', 'col2': 'Description of col2'}
+
+        Returns:
+            float: Metadata quality score in the range [0, 1].
+        """
+        if df is None or df.empty:
+            return 0.0  # No metadata quality if there's no data
+        
+        total_score = 0
+        max_score = 0
+
+        # 1. Check column name completeness
+        num_columns = len(df.columns)
+        meaningful_column_names = sum(1 for col in df.columns if col and "Unnamed" not in col)
+        total_score += meaningful_column_names
+        max_score += num_columns  # Maximum score for all columns having meaningful names
+
+        # 2. Check data type consistency
+        consistent_data_types = sum(1 for col in df.columns if df[col].apply(type).nunique() == 1)
+        total_score += consistent_data_types
+        max_score += num_columns  # Each column can get a point for consistency
+
+        # 3. Check for duplicate columns
+        duplicate_columns = df.T.duplicated().sum()
+        total_score += (num_columns - duplicate_columns)  # Deduct points for duplicates
+        max_score += num_columns  # Each column ideally is unique
+
+        # 4. Optional: Check if column descriptions are provided
+        if column_descriptions:
+            described_columns = sum(1 for col in df.columns if col in column_descriptions and column_descriptions[col])
+            total_score += described_columns
+            max_score += num_columns  # Each column ideally has a description
+
+        # Normalize score to a range of 0 to 1
+        return total_score / max_score if max_score > 0 else 0.0
 
 # Example usage (replace with your actual dataset)
 if __name__ == "__main__":
