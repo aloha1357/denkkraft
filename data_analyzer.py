@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 from scipy.stats import zscore
 from typing import List, Dict, Tuple
+from datetime import datetime
+import math
 
 class DataAnalyzer:
     @staticmethod
@@ -25,7 +27,7 @@ class DataAnalyzer:
                 return False
         return True
 
-    @staticmethod
+    @staticmethod #show in UI
     def detect_outliers(df: pd.DataFrame, method: str = 'IQR') -> Dict[str, List[int]]:
         """
         Detects outliers in numerical columns.
@@ -76,7 +78,7 @@ class DataAnalyzer:
                 return False
         return True
 
-    @staticmethod
+    @staticmethod #show in UI
     def statistical_summary(df: pd.DataFrame) -> pd.DataFrame:
         """
         Generates descriptive statistics for numerical columns.
@@ -209,18 +211,68 @@ class DataAnalyzer:
         else:
             print("No specific checks implemented for this context.")
     
+    #-------------------Checked by ALoha-------------------
+
     @staticmethod    
-    def calculate_completeness_score( df: pd.DataFrame) -> float:
-        # Placeholder: Completeness score logic
+    def calculate_completeness_score(df: pd.DataFrame) -> float:
+        """
+        Calculate the completeness score of a DataFrame.
+        
+        Completeness Score = 1 - (Total Number of Missing Values / Total Number of Data Points)
+
+        Args:
+        df (pd.DataFrame): The dataset as a pandas DataFrame.
+
+        Returns:
+        float: The completeness score (0 to 1).
+        """
+        if df.empty:
+            return 0.0  # If the DataFrame is empty, completeness is 0.
+
+        # Total cells in the DataFrame
         total_cells = df.size
-        non_null_cells = df.count().sum()
-        return non_null_cells / total_cells if total_cells > 0 else 0
-    
+
+        # Total non-missing cells
+        non_null_cells = df.notnull().sum().sum()
+
+        # Calculate the completeness score
+        completeness_score = non_null_cells / total_cells
+
+        return round(completeness_score, 4)  # Return a rounded score for simplicity
+
     @staticmethod
-    def calculate_update_score( metadata: dict) -> float:
-        # Placeholder: Update frequency score logic
-        return metadata.get("update_score", 0.5)
-    
+    def calculate_update_score(metadata: dict) -> float:
+        """
+        Calculate the update frequency score based on metadata.
+
+        Args:
+        metadata (dict): Metadata containing 'last_update_time' in ISO format (YYYY-MM-DD).
+
+        Returns:
+        float: Update score (0 to 1). A dataset updated recently gets a higher score.
+        """
+        # Check if 'last_update_time' is in metadata
+        last_update_time = metadata.get("last_update_time")
+        if not last_update_time:
+            return 0.5  # Default score if no update time is provided
+
+        try:
+            # Parse the last update time
+            last_update_date = datetime.fromisoformat(last_update_time)
+            today = datetime.now()
+            days_since_update = (today - last_update_date).days
+
+            # Calculate score using exponential decay (customize decay factor as needed)
+            decay_factor = 0.1  # Adjust this value to control the rate of decay
+            update_score = math.exp(-decay_factor * days_since_update)
+
+            # Ensure the score is between 0 and 1
+            return round(update_score, 4)
+
+        except ValueError:
+            # Return a default score if the date format is invalid
+            return 0.5  
+
     @staticmethod
     def calculate_metadata_quality_score(df: pd.DataFrame, column_descriptions=None) -> float:
         """
