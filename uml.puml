@@ -1,0 +1,32 @@
+@startuml
+class DataFetcher {
+    - source: str
+    - df: DataFrame
+    - metadata: dict
+    + fetch_data(): (df: DataFrame, metadata: dict)
+    + set_source(source: str): void
+}
+
+class DataAnalyzer {
+    + calculate_completeness_score(df: DataFrame): float
+    + calculate_update_score(metadata: dict): float
+}
+
+class TrustScoreCalculator {
+    - completeness_weight: float
+    - update_weight: float
+    + calculate_trust_score(completeness_score: float, update_score: float): float
+    + visualize_scores(df: DataFrame, score: float): void
+}
+
+class MainApp {
+    - fetcher: DataFetcher
+    - analyzer: DataAnalyzer
+    - calculator: TrustScoreCalculator
+    + run(): void
+}
+
+MainApp --> DataFetcher
+MainApp --> DataAnalyzer
+MainApp --> TrustScoreCalculator
+@enduml
