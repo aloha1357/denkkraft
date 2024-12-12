@@ -43,7 +43,7 @@ def fetch_data(source_url: str) -> Tuple[pd.DataFrame, dict]:
 
 # Example usage (replace with your actual dataset URL)
 if __name__ == "__main__":
-    url = "https://example.com/dataset.csv"  # Replace with a valid URL
+    url = "ted_talks_en.csv"  # Replace with a valid URL
     dataset, meta = fetch_data(url)
 
     print("Metadata:", meta)
