@@ -36,8 +36,7 @@ Our framework doesn't just check boxes — it ensures your dataset is **ready fo
 
 1. **Clone the repository**:  
    ```bash  
-   git clone https://github.com/your-repo/dataset-validation-framework.git  
-   cd dataset-validation-framework  
+   git clone https://github.com/aloha1357/denkkraft.git 
    ```  
 
 2. **Install dependencies**:  
@@ -55,38 +54,8 @@ Our framework doesn't just check boxes — it ensures your dataset is **ready fo
 ## How It Works
 
 ### ⚡ Quick Start
-1. Upload a dataset (CSV, JSON, or API endpoint).  
-2. Select the validation metrics you want to apply.  
-3. Get an easy-to-understand trust score, along with detailed reports on potential issues.  
-
-### 🛠️ Advanced Example
-Want to dig into the details? Here’s what you can do:  
-
-#### 🔉 Schema Validation
-```python  
-from data_analyzer import schema_validation  
-
-schema = {"column1": "int", "column2": "float", "column3": "str"}  
-results = schema_validation(dataset, schema)  
-print(results)  
-```  
-
-#### 📉 Outlier Detection
-```python  
-from data_analyzer import detect_outliers  
-
-outliers = detect_outliers(dataset, method="IQR")  
-print(outliers)  
-```  
-
-#### 🗲 Text Data Quality
-```python  
-from data_analyzer import text_quality_check  
-
-text_issues = text_quality_check(dataset, text_columns=["description"])  
-print(text_issues)  
-```  
-
+1. Upload a dataset (CSV, JSON, or API endpoint). Currently the csv is hardcoded. 
+2. Get an easy-to-understand trust score, along with detailed reports on potential issues.    
 ---
 
 ## 📊 The Trust Score
